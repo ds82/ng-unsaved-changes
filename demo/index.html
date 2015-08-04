@@ -1,0 +1,58 @@
+<html ng-app="app">
+  <head>
+    <title>ng-unsaved-changes demo</title>
+    <script src="../node_modules/angular/angular.js"></script>
+    <script src="../node_modules/angular-route/angular-route.js"></script>
+    <script src="../dist/ng-unsaved-changes.js"></script>
+    <script src="//rawgit.com/mgcrea/angular-strap/master/dist/angular-strap.min.js"></script>
+    <script src="//rawgit.com/mgcrea/angular-strap/master/dist/angular-strap.tpl.js"></script>
+    <script>
+      angular.module('app', ['ngRoute', 'io.dennis.unsaved-changes', 'mgcrea.ngStrap'])
+        .config(SetupRoutes)
+        .controller('AppCtrl', AppCtrl)
+      ;
+
+      SetupRoutes.$inject = ['$routeProvider'];
+      function SetupRoutes($routeProvider) {
+        $routeProvider
+          .when('/1', {
+            controller: 'AppCtrl',
+            templateUrl: 'view1.html'
+          })
+          .when('/2', {
+            controller: 'AppCtrl',
+            templateUrl: 'view2.html'
+          })
+          .otherwise({
+            redirectTo: '/1'
+          })
+        ;
+      }
+
+      AppCtrl.$inject = ['$http', 'UnsavedChangedService', '$modal'];
+      function AppCtrl($http, $unsavedChanges, $modal) {
+        var vm = this;
+
+        $unsavedChanges.setInterceptor(openModal);
+        $unsavedChanges.setMessage('You have unsaved changes, really leave?');
+
+        function openModal() {
+          $modal({title: 'My Title', content: 'My Content', show: true});
+        }
+      }
+    </script>
+    <link
+      rel="stylesheet"
+      href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+  </head>
+  <body ng-controller="AppCtrl as app">
+    <div class="container">
+      <div ng-view></div>
+
+      <a href="https://google.com">external</a>
+      <a href="#/1">view 1</a>
+      <a href="#/2">view 2</a>
+
+    </div> <!-- /container -->
+  </body>
+</html>
