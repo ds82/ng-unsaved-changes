@@ -2,29 +2,29 @@
   <head>
     <title>ng-unsaved-changes demo</title>
     <script src="../node_modules/angular/angular.js"></script>
-    <script src="../node_modules/angular-route/angular-route.js"></script>
+    <script src="../node_modules/angular-ui-router/build/angular-ui-router.js"></script>
     <script src="../dist/ng-unsaved-changes.js"></script>
     <script src="//rawgit.com/mgcrea/angular-strap/master/dist/angular-strap.min.js"></script>
     <script src="//rawgit.com/mgcrea/angular-strap/master/dist/angular-strap.tpl.js"></script>
     <script>
-      angular.module('app', ['ngRoute', 'io.dennis.unsaved-changes', 'mgcrea.ngStrap'])
+      angular.module('app', ['ui.router', 'io.dennis.unsaved-changes', 'mgcrea.ngStrap'])
         .config(SetupRoutes)
         .controller('AppCtrl', AppCtrl)
       ;
 
-      SetupRoutes.$inject = ['$routeProvider'];
-      function SetupRoutes($routeProvider) {
-        $routeProvider
-          .when('/1', {
+      SetupRoutes.$inject = ['$stateProvider', '$urlRouterProvider'];
+      function SetupRoutes($stateProvider, $urlRouterProvider) {
+        $urlRouterProvider.otherwise('/1');
+        $stateProvider
+          .state('s1', {
+            url: '/1',
             controller: 'AppCtrl',
             templateUrl: 'view1.html'
           })
-          .when('/2', {
+          .state('s2', {
+            url: '/2',
             controller: 'AppCtrl',
             templateUrl: 'view2.html'
-          })
-          .otherwise({
-            redirectTo: '/1'
           })
         ;
       }
@@ -59,11 +59,11 @@
   </head>
   <body ng-controller="AppCtrl as app">
     <div class="container">
-      <div ng-view></div>
+      <div ui-view></div>
 
       <a href="https://google.com">external</a>
-      <a href="#/1">view 1</a>
-      <a href="#/2">view 2</a>
+      <a ui-sref="s1">view 1</a>
+      <a ui-sref="s2">view 2</a>
 
     </div> <!-- /container -->
   </body>
