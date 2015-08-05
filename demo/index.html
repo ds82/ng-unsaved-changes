@@ -34,7 +34,11 @@
         var vm = this;
 
         $unsavedChanges.setInterceptor(openModal);
-        $unsavedChanges.setMessage('You have unsaved changes, really leave?');
+
+        //
+        // skip this to only listen to angular events
+        //
+        $unsavedChanges.setMessage('You have unsaved changes.');
 
         function openModal(confirm) {
           var scope = $scope.$new();
