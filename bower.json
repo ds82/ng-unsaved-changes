@@ -1,0 +1,26 @@
+{
+  "name": "ng-unsaved-changes",
+  "version": "0.0.0",
+  "homepage": "https://github.com/ds82/ng-unsaved-changes",
+  "main": "dist/ng-unsaved-changes.js",
+  "moduleType": [
+    "amd"
+  ],
+  "keywords": [
+    "angular",
+    "form",
+    "unsaved",
+    "warning"
+  ],
+  "authors": [
+    "Dennis Sänger <ng-unsaved-changes-15@mail.ds82.de>"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
