@@ -931,7 +931,10 @@ function UnsavedChangedService($injector, $window, $rootScope, $location) {
   var self = this;
 
   var dirtySuspects = new _Map();
-  var interceptor = function interceptor() {};
+  var interceptor = function interceptor(next) {
+    console.log('[ng-unsaved-changes] (WARNING) You should set an interceptor');
+    next();
+  };
   var leaveMessage = undefined;
 
   // stub state service in case ui-router is not there
