@@ -11,7 +11,7 @@ function UnsavedChangedService($injector, $window, $rootScope, $location) {
 
   var dirtySuspects = new Map();
   var interceptor = function() {};
-  var leaveMessage = '';
+  var leaveMessage = undefined;
 
   // stub state service in case ui-router is not there
   var $state = {go: function() {}};
@@ -24,8 +24,6 @@ function UnsavedChangedService($injector, $window, $rootScope, $location) {
   self.setInterceptor = setInterceptor;
   self.setMessage = setMessage;
 
-  $window.onbeforeunload = beforeUnload;
-  $window.addEventListener('beforeunload', beforeUnload);
 
   //
   // register $locationChangeStart
@@ -51,6 +49,12 @@ function UnsavedChangedService($injector, $window, $rootScope, $location) {
 
   function setMessage(msg) {
     leaveMessage = msg;
+    if (msg) { hookOnBeforeUnload(); }
+  }
+
+  function hookOnBeforeUnload() {
+    $window.onbeforeunload = beforeUnload;
+    $window.addEventListener('beforeunload', beforeUnload);
   }
 
   function hasUnsavedChanges() {
