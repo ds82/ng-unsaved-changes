@@ -1,5 +1,4 @@
 'use strict';
-require('babel/polyfill');
 
 angular.module('io.dennis.unsaved-changes', [])
   .service('UnsavedChangedService', UnsavedChangedService)
@@ -55,7 +54,7 @@ function UnsavedChangedService($injector, $window, $rootScope, $location) {
   }
 
   function hasUnsavedChanges() {
-    return !![...dirtySuspects].find(([,suspect]) => suspect.isDirty());
+    return !!Array.find([...dirtySuspects], ([,suspect]) => suspect.isDirty());
   }
 
   function beforeUnload() {
