@@ -6,19 +6,19 @@ angular.module('io.dennis.unsaved-changes', [])
   .directive('unsavedChanges', UnsavedChanges);
 ;
 
-UnsavedChangedService.$inject = ['$window', '$rootScope'];
-function UnsavedChangedService($window, $rootScope) {
+UnsavedChangedService.$inject = ['$injector', '$window', '$rootScope', '$location'];
+function UnsavedChangedService($injector, $window, $rootScope, $location) {
   var self = this;
 
-  var dirtySuspects = [];
+  var dirtySuspects = new Map();
   var interceptor = function() {};
   var leaveMessage = '';
 
-  // TODO make configurable
-  var listenTo = [
-    '$locationChangeStart',     // default angular event
-    '$stateChangeStart',        // ui-router event
-  ];
+  // stub state service in case ui-router is not there
+  var $state = {go: function() {}};
+  try {
+    $state = $injector.get('$state');
+  } catch (e) {}
 
   self.register = register;
   self.unregister = unregister;
@@ -27,17 +27,23 @@ function UnsavedChangedService($window, $rootScope) {
 
   $window.onbeforeunload = beforeUnload;
   $window.addEventListener('beforeunload', beforeUnload);
-  listenTo.forEach(eventName => $rootScope.$on(eventName, onLocationChange));
 
-  function register(who, isDirty) {
-    dirtySuspects.push({who: who, isDirty: isDirty});
+  //
+  // register $locationChangeStart
+  //
+  $rootScope.$on('$locationChangeStart', onLocationChange);
+
+  //
+  // register $stateChangeStart (ui-router)
+  //
+  $rootScope.$on('$stateChangeStart', onStateChange);
+
+  function register(who, suspect) {
+    dirtySuspects.set(who, suspect);
   }
 
   function unregister(who) {
-    var removeIndex = dirtySuspects.indexOf(who);
-    if (removeIndex > -1) {
-      dirtySuspects.splice(removeIndex, 1);
-    }
+    dirtySuspects.delete(who);
   }
 
   function setInterceptor(fn) {
@@ -49,8 +55,7 @@ function UnsavedChangedService($window, $rootScope) {
   }
 
   function hasUnsavedChanges() {
-    console.log('hasUnsavedChanges?', !!dirtySuspects.find(suspect => suspect.isDirty()));
-    return !!dirtySuspects.find(suspect => suspect.isDirty());
+    return !![...dirtySuspects].find(([,suspect]) => suspect.isDirty());
   }
 
   function beforeUnload() {
@@ -59,13 +64,36 @@ function UnsavedChangedService($window, $rootScope) {
     }
   }
 
-  function onLocationChange(ev, next) {
-    console.log('onLocationChange', ev);
+  function onLocationChange(ev, newUrl) {
     if (hasUnsavedChanges()) {
       ev.preventDefault();
-      interceptor(next);
+      let path = getAngularPath(newUrl);
+      confirmLocationChange(() => $location.path(path));
       return false;
     }
+  }
+
+  function onStateChange(ev, nextState, params) {
+    if (hasUnsavedChanges()) {
+      ev.preventDefault();
+      confirmLocationChange(() => $state.go(nextState, params));
+      return false;
+    }
+  }
+
+  function confirmLocationChange(next) {
+    interceptor(() => {
+      for (let [,suspect] of dirtySuspects) {
+        suspect.setPristine();
+      }
+      next();
+    });
+  }
+
+  function getAngularPath(fullUrl) {
+    var anchor = $window.document.createElement('a');
+    anchor.setAttribute('href', fullUrl);
+    return anchor.hash.substring(1);
   }
 }
 
@@ -83,7 +111,10 @@ function UnsavedChanges($service) {
 
     if (tag === 'form') {
       var formCtrl = element.controller('form');
-      $service.register(iAm, () => formCtrl.$dirty);
+      $service.register(iAm, {
+        isDirty: () => formCtrl.$dirty,
+        setPristine: () => formCtrl.$setPristine()
+      });
     } else {
       // TODO
     }

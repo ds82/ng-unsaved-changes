@@ -4098,24 +4098,30 @@ process.umask = function() { return 0; };
 
 },{}],169:[function(_dereq_,module,exports){
 'use strict';
+
+var _slicedToArray = (function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i['return']) _i['return'](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError('Invalid attempt to destructure non-iterable instance'); } }; })();
+
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) arr2[i] = arr[i]; return arr2; } else { return Array.from(arr); } }
+
 _dereq_('babel/polyfill');
 
 angular.module('io.dennis.unsaved-changes', []).service('UnsavedChangedService', UnsavedChangedService).directive('unsavedChanges', UnsavedChanges);
 ;
 
-UnsavedChangedService.$inject = ['$window', '$rootScope'];
-function UnsavedChangedService($window, $rootScope) {
+UnsavedChangedService.$inject = ['$injector', '$window', '$rootScope', '$location'];
+function UnsavedChangedService($injector, $window, $rootScope, $location) {
   var self = this;
 
-  var dirtySuspects = [];
+  var dirtySuspects = new Map();
   var interceptor = function interceptor() {};
   var leaveMessage = '';
 
-  // TODO make configurable
-  var listenTo = ['$locationChangeStart', // default angular event
-  '$stateChangeStart'];
+  // stub state service in case ui-router is not there
+  var $state = { go: function go() {} };
+  try {
+    $state = $injector.get('$state');
+  } catch (e) {}
 
-  // ui-router event
   self.register = register;
   self.unregister = unregister;
   self.setInterceptor = setInterceptor;
@@ -4123,19 +4129,23 @@ function UnsavedChangedService($window, $rootScope) {
 
   $window.onbeforeunload = beforeUnload;
   $window.addEventListener('beforeunload', beforeUnload);
-  listenTo.forEach(function (eventName) {
-    return $rootScope.$on(eventName, onLocationChange);
-  });
 
-  function register(who, isDirty) {
-    dirtySuspects.push({ who: who, isDirty: isDirty });
+  //
+  // register $locationChangeStart
+  //
+  $rootScope.$on('$locationChangeStart', onLocationChange);
+
+  //
+  // register $stateChangeStart (ui-router)
+  //
+  $rootScope.$on('$stateChangeStart', onStateChange);
+
+  function register(who, suspect) {
+    dirtySuspects.set(who, suspect);
   }
 
   function unregister(who) {
-    var removeIndex = dirtySuspects.indexOf(who);
-    if (removeIndex > -1) {
-      dirtySuspects.splice(removeIndex, 1);
-    }
+    dirtySuspects['delete'](who);
   }
 
   function setInterceptor(fn) {
@@ -4147,10 +4157,10 @@ function UnsavedChangedService($window, $rootScope) {
   }
 
   function hasUnsavedChanges() {
-    console.log('hasUnsavedChanges?', !!dirtySuspects.find(function (suspect) {
-      return suspect.isDirty();
-    }));
-    return !!dirtySuspects.find(function (suspect) {
+    return !![].concat(_toConsumableArray(dirtySuspects)).find(function (_ref) {
+      var _ref2 = _slicedToArray(_ref, 2);
+
+      var suspect = _ref2[1];
       return suspect.isDirty();
     });
   }
@@ -4161,13 +4171,70 @@ function UnsavedChangedService($window, $rootScope) {
     }
   }
 
-  function onLocationChange(ev, next) {
-    console.log('onLocationChange', ev);
+  function onLocationChange(ev, newUrl) {
+    if (hasUnsavedChanges()) {
+      var _ret = (function () {
+        ev.preventDefault();
+        var path = getAngularPath(newUrl);
+        confirmLocationChange(function () {
+          return $location.path(path);
+        });
+        return {
+          v: false
+        };
+      })();
+
+      if (typeof _ret === 'object') return _ret.v;
+    }
+  }
+
+  function onStateChange(ev, nextState, params) {
     if (hasUnsavedChanges()) {
       ev.preventDefault();
-      interceptor(next);
+      confirmLocationChange(function () {
+        return $state.go(nextState, params);
+      });
       return false;
     }
+  }
+
+  function confirmLocationChange(next) {
+    interceptor(function () {
+      var _iteratorNormalCompletion = true;
+      var _didIteratorError = false;
+      var _iteratorError = undefined;
+
+      try {
+        for (var _iterator = dirtySuspects[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+          var _step$value = _slicedToArray(_step.value, 2);
+
+          var suspect = _step$value[1];
+
+          suspect.setPristine();
+        }
+      } catch (err) {
+        _didIteratorError = true;
+        _iteratorError = err;
+      } finally {
+        try {
+          if (!_iteratorNormalCompletion && _iterator['return']) {
+            _iterator['return']();
+          }
+        } finally {
+          if (_didIteratorError) {
+            throw _iteratorError;
+          }
+        }
+      }
+
+      next();
+    });
+  }
+
+  function getAngularPath(fullUrl) {
+    var anchor = $window.document.createElement('a');
+    anchor.setAttribute('href', fullUrl);
+    return anchor.hash.substring(1);
   }
 }
 
@@ -4185,8 +4252,13 @@ function UnsavedChanges($service) {
 
     if (tag === 'form') {
       var formCtrl = element.controller('form');
-      $service.register(iAm, function () {
-        return formCtrl.$dirty;
+      $service.register(iAm, {
+        isDirty: function isDirty() {
+          return formCtrl.$dirty;
+        },
+        setPristine: function setPristine() {
+          return formCtrl.$setPristine();
+        }
       });
     } else {
       // TODO
