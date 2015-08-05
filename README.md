@@ -1,7 +1,14 @@
 # ng-unsaved-changes
 
+[demo-ngroute]: https://ds82.github.io/ng-unsaved-changes/demo/
+[demo-ui-router]: https://ds82.github.io/ng-unsaved-changes/demo/ui-router-demo.html
+
 An angular directive to notify the user before leaving a page with unsaved changes in forms.
 
+# demo
+
+[angular-route demo][demo-ngroute]
+[ui-router demo][demo-ui-router]
 
 # usage
 
