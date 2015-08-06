@@ -7,8 +7,7 @@ An angular directive to notify the user before leaving a page with unsaved chang
 
 # demo
 
-[angular-route demo][demo-ngroute]
-[ui-router demo][demo-ui-router]
+[angular-route demo][demo-ngroute] | [ui-router demo][demo-ui-router]
 
 # usage
 
@@ -45,6 +44,14 @@ function SetupUnsavedChanges($unsavedChanges) {
 ```
 
 Currently only works for forms!
+
+# faq
+
+ * *Why is your distributed module 40kb (unminified) although the source file is just 3kb in size?*
+
+ The module is written in ES2015 and need some polyfills to run in current browsers. That why the generated
+ distribution file is about 40kb unminified. I'm sorry if this bothers you. If you use other ES2015 code in your
+ project you could include the source file directly and provide the needed polyfills yourself.
 
 
 # license
