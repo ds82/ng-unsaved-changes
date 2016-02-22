@@ -79,8 +79,8 @@ function UnsavedChangedService($injector, $window, $rootScope, $location) {
     }
   }
 
-  function onStateChange(ev, nextState, params) {
-    if (hasUnsavedChanges()) {
+  function onStateChange(ev, nextState, params, fromState, fromParam, options) {
+    if (!(options && options.force) && hasUnsavedChanges()) {
       ev.preventDefault();
       confirmLocationChange(() => $state.go(nextState, params));
       return false;
